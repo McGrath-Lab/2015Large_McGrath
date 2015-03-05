@@ -1,7 +1,7 @@
 # 2015Large_McGrath
 Python scripts for solving the egglaying models
 
-Run the script using : python fit_Egglaying.py 
+Run the script using : python fit_Egglaying.py > output.csv
 
 Input Data : 
 
@@ -17,3 +17,8 @@ Output Data :
 3. Effect Sizes, i.e difference in the predicted Egglaying Rates between CX12311 and nurf-1
 
 4. Coefficients for the model equation : intercept + k1*X1 + k2*X2 + ki*X1*X2
+
+Modules Needed to run the script : 
+
+lmfit : http://lmfit.github.io/lmfit-py/installation.html
+numpy and scipy : http://www.scipy.org/scipylib/download.html
