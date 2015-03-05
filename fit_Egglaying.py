@@ -15,13 +15,15 @@ from lmfit import minimize, Parameters, Parameter, fit_report
 ########################################################################
 
 def egglayingModel1(t,stateVar,params):
-        ## t is not used but automatically sent by the ODE solver
-        ## stateVar is a list of states organized as [S1,O1,E1,S2,O2,E2....SN,ON,EN]
-        ## params is a dictionary of Parameter objects,  keyed as = ko1,ko2...koN, kf, kc
-        ## The model is:
-    	## dE = kf*O*S
-    	## dS = -dE
-    	## dO = ko - kc*O - dE
+        """ t is not used but automatically sent by the ODE solver
+            stateVar is a list of states organized as [S1,O1,E1,S2,O2,E2....SN,ON,EN]
+            params is a dictionary of Parameter objects,  keyed as = ko1,ko2...koN, kf, kc
+            The model is:
+    	    dE = kf*O*S
+    	    dS = -dE
+            dO = ko - kc*O - dE
+            returns the derivates of the three state variables at each time step 
+    	"""
 
         num_strains = len(stateVar) / 3
         diffs = []
@@ -40,12 +42,14 @@ def egglayingModel1(t,stateVar,params):
 ########################################################################
 
 def solveODE(params, model_function, integrator, delta_t, final_t):
-        ## params is a dictionary of Parameter objects,  keyed as = ko1,ko2...koN, kf, kc, S0
-        ## assumes E and O start at 0 at t=0  and S is given by S0 in params dictionary
-        ## model_function is a function that outputs state changes given the current t, state, and parameters
-        ## integrator is one of the possible integrators used by ode()
-        ## delta_t indicates the timestep to integrate ODEs
-        ## final_t indicates how long to integrate to
+        """ params is a dictionary of Parameter objects,  keyed as = ko1,ko2...koN, kf, kc, S0
+            assumes E and O start at 0 at t=0  and S is given by S0 in params dictionary
+            model_function is a function that outputs state changes given the current t, state, and parameters
+            integrator is one of the possible integrators used by ode()
+            delta_t indicates the timestep to integrate ODEs
+            final_t indicates how long to integrate to
+            returns the predicted egglaying rate over the integration time bounds
+        """
 
         ## Set initial states and initialize data structures. Assumes ko is in ko1
         initial_states = [params['S0'].value,0,0]
@@ -87,14 +91,14 @@ def solveODE(params, model_function, integrator, delta_t, final_t):
 ##        are called from here, returns residuals                     ## 
 ########################################################################
 def residual(params, model_function, data, integrator, delta_t, final_t):
-        # params is a Parameters object, 1 ko per strain. 1 kf, kc, and ks for all strains
-        # model_function is a function pointer for egg-laying model
-        # data is a dictionary of keys and lists [5 data points] with data['times'] = to the time points of the data
-        # inital_states are [S1,O1,E1,S2,O2,E2....SN,ON,EN] where N is >=1
-        # integtrator is a type of integrator used by ode
-        # delta_t specifies the size of the times step
-
-        ## Initialize globals
+        """ params is a Parameters object, 1 ko per strain. 1 kf, kc, and ks for all strains
+            model_function is a function pointer for egg-laying model
+            data is a dictionary of keys and lists [5 data points] with data['times'] = to the time points of the data
+            inital_states are [S1,O1,E1,S2,O2,E2....SN,ON,EN] where N is >=1
+            integtrator is a type of integrator used by ode
+            delta_t specifies the size of the times step
+            calculates and returns the residuals at the 5 input data time points
+        """
 
         y = {}
         res = []
@@ -146,7 +150,9 @@ def residual(params, model_function, data, integrator, delta_t, final_t):
 ##			  PARAMETER FUNCTION			      ##
 ########################################################################
 def setParameters(default_params) : 
-        # [ko, kf, kc, ks]
+        """ lmfit's Parameters() function is called to initialize parameters in the appropriate format
+            The function returns the parameters : ['ko0','ko1','kf , 'kc','S0']
+        """
         parms = Parameters()
         for key in default_params:
                 if len(default_params[key]) == 2:
@@ -159,7 +165,9 @@ def setParameters(default_params) :
 ########################################################################
 ##			  STATE FUNCTION			      ##
 ########################################################################
-def setStates(num_strains, default_values = [300,0,0]) : 
+def setStates(num_strains, default_values = [300,0,0]) :
+        """ Appropriate State Variables, viz. S,O and E are set according to the number of strains in the input data
+        """
         states = []
         for i in range(0,num_strains) :
         	states.extend(default_values)
@@ -172,16 +180,19 @@ def setStates(num_strains, default_values = [300,0,0]) :
 ########################################################################
 
 def sum_residuals(out):
+        """ Total Sum of Squares of the residuals are printed
+        """
         sumsq = np.sum(out.residual*out.residual)
         print sumsq
         
 def calc_interaction(a,b,c,d):
-        #a = 0,0
-        #b = 1,0
-        #c = 0,1
-        #d = 1,1
-        #E' = intercept + k1*X1 + k2*X2 + ki*X1*X2
-
+        """ This function calculates and returns the constants in the model equation specified below
+            a = 0,0
+            b = 1,0
+            c = 0,1
+            d = 1,1
+            E' = intercept + k1*X1 + k2*X2 + ki*X1*X2
+        """
         model = {}
         model['intercept'] = []
         model['k1'] = []
@@ -214,7 +225,7 @@ data['nurf-1'] = [0.00, 0.09, 3.65, 5.66, 3.92]
 
 ## Create parameter dictionary
 params = setParameters({'ko0': [1.5, True, .5, 3], 'ko1': [1.5, True, .5, 3],'kf': [.00048, True, .00001, .001], 'kc': [-0.165, True, -0.17, 0.1], 'S0':[300, False]})
-#params = setParameters({'ko0': [1.5, True, .5, 50], 'ko1': [1.5, True, .5, 50],'kf': [.00048, True, .00001, .001], 'kc': [0, False, -0.17, 0.1], 'S0':[300, False]})
+########################################################################################################################################################################
 
 ## Calculate best fit parameters
 out_data = minimize(residual, params, method = minimize_method, args=(egglayingModel1, data, ODE_method, delta_t, final_t))
@@ -234,7 +245,7 @@ params['ko0'].value = out_data.params['ko0'].value
 CX12311_600 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
 params['ko0'].value = out_data.params['ko1'].value
 NILnurf1_600 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
-
+########################################################################################################################################################################
 
 params['S0'].value = 300
 params['ko0'].value = out_data.params['ko1'].value
@@ -251,3 +262,4 @@ model = calc_interaction(a,b,c,d)
 print 'Time(h),CX12311,NILnurf1,CX12311_600,NILnurf1_600,'+str(params['ko1'].value)+','+str(params['ko1'].value+mQTL)+','+str(params['ko0'].value)+','+str(params['ko0'].value+mQTL)+',Intercept,k1,k2,ki'
 for i in range(0,len(a)):
         print str(i*delta_t) + ',' + str(CX12311[i]) + ',' + str(NILnurf1[i]) + ',' + str(CX12311_600[i]) + ',' + str(NILnurf1_600[i]) + ',' + str(a[i]) + ',' + str(b[i]) + ',' + str(c[i]) + ',' + str(d[i]) + ',' + str(model['intercept'][i]) + ',' + str(model['k1'][i]) + ',' + str(model['k2'][i]) + ',' + str(model['ki'][i])
+################################################################################################################# END OF THE SCRIPT ######################################################################################################################################################################################################
