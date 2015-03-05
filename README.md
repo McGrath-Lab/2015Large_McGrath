@@ -21,4 +21,5 @@ Output Data :
 Modules Needed to run the script : 
 
 lmfit : http://lmfit.github.io/lmfit-py/installation.html
+
 numpy and scipy : http://www.scipy.org/scipylib/download.html
