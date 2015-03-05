@@ -2,8 +2,6 @@
 from scipy.integrate import ode
 from scipy.optimize import leastsq
 import numpy as np  
-import csv
-import argparse
 import math
 from lmfit import minimize, Parameters, Parameter, fit_report
 
@@ -150,7 +148,8 @@ def residual(params, model_function, data, integrator, delta_t, final_t):
 ##			  PARAMETER FUNCTION			      ##
 ########################################################################
 def setParameters(default_params) : 
-        """ lmfit's Parameters() function is called to initialize parameters in the appropriate format
+        """ default_parameters is a dictionary of lists
+            lmfit's Parameters() function is called to initialize parameters in the appropriate format
             The function returns the parameters : ['ko0','ko1','kf , 'kc','S0']
         """
         parms = Parameters()
@@ -215,7 +214,7 @@ final_t = 200
 delta_t = .1
 ODE_method = 'dopri'
 minimize_method = 'leastsq'
-mQTL = .1
+mQTL = .1 # effect of modifier QTL on oocyte generation rate for Figure 4a
 
 ## Experimental File Input
 data = {}
@@ -223,31 +222,33 @@ data['times'] = [2,5,27,51,72]
 data['CX12311'] = [0.04, 2.91, 6.72, 1.81, 0.22]
 data['nurf-1'] = [0.00, 0.09, 3.65, 5.66, 3.92]
 
-## Create parameter dictionary
+## Create parameter dictionary : fit individual kos to CX12311 and NIL nurf-1 and shared kf and kc values. 
+## Initial sperm for both strain = 300
 params = setParameters({'ko0': [1.5, True, .5, 3], 'ko1': [1.5, True, .5, 3],'kf': [.00048, True, .00001, .001], 'kc': [-0.165, True, -0.17, 0.1],
                         'S0':[300, False]})
-################################################################################################################################################################
 
 ## Calculate best fit parameters
 out_data = minimize(residual, params, method = minimize_method, args=(egglayingModel1, data, ODE_method, delta_t, final_t))
-sum_residuals(out_data)
-print(out_data.params)
-print(out_data.residual)
 
-## Calculate ODEs for best fits and 600 initial sperm
+## Print out sum square of residuals to ascertain goodness of fit
+print (np.sum(out_data.residual*out_data.residual))
+
+## Calculate ODEs for best fits and 300 initial sperm
 params['ko0'].value = out_data.params['ko0'].value
 params['kf'].value = out_data.params['kf'].value
 params['kc'].value = out_data.params['kc'].value
 CX12311 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
 params['ko0'].value = out_data.params['ko1'].value
 NILnurf1 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
+
+## Model what happens when we increase initial sperm to 450
 params['S0'].value = 450
 params['ko0'].value = out_data.params['ko0'].value
-CX12311_600 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
+CX12311_450 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
 params['ko0'].value = out_data.params['ko1'].value
-NILnurf1_600 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
-################################################################################################################################################################
+NILnurf1_450 = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
 
+## For figure 4a, model effect of mQTL on egg-laying using parameters from above
 params['S0'].value = 300
 params['ko0'].value = out_data.params['ko1'].value
 a = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
@@ -257,12 +258,16 @@ params['ko0'].value = out_data.params['ko0'].value
 c = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
 params['ko0'].value = out_data.params['ko0'].value + mQTL
 d = solveODE(params, egglayingModel1, ODE_method, delta_t, final_t)
+
+## Calculate interaction term between nurf-1 deletion and the mQTL
 model = calc_interaction(a,b,c,d)
 
 
 print 'Time(h),CX12311,NILnurf1,CX12311_600,NILnurf1_600,'+str(params['ko1'].value)+','+str(params['ko1'].value+mQTL)+','+str(params['ko0'].value)+','
 +str(params['ko0'].value+mQTL)+',Intercept,k1,k2,ki'
 
+## Print out data to stdout to import into excel for graphing
 for i in range(0,len(a)):
         print str(i*delta_t) + ',' + str(CX12311[i]) + ',' + str(NILnurf1[i]) + ',' + str(CX12311_600[i]) + ',' + str(NILnurf1_600[i]) + ',' +str(a[i]) + ',' + str(b[i]) + ',' + str(c[i]) + ',' + str(d[i]) + ',' + str(model['intercept'][i]) + ',' + str(model['k1'][i]) + ',' +str(model['k2'][i]) + ',' + str(model['ki'][i])
-########################################################## END OF THE SCRIPT ###################################################################################
+        
+####################################################################### END OF THE SCRIPT ######################################################################
